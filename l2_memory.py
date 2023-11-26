@@ -12,48 +12,51 @@ from langchain.memory import (
 )
 from loguru import logger
 
-if __name__ == "__main__":
-    _ = load_dotenv(find_dotenv())  # read local .env file
-    openai.api_key = os.environ["OPENAI_API_KEY"]
+from l2_long_string import schedule
 
-    llm = ChatOpenAI(temperature=0.0, model="gpt-3.5-turbo")
 
-    ## ConversationBufferMemory
+def buffer_memory_sample(llm: ChatOpenAI) -> None:
     memory = ConversationBufferMemory()
     conversation = ConversationChain(llm=llm, memory=memory, verbose=True)
-    _ = conversation.predict(input="Hi, my name is Andrew")
-    _ = conversation.predict(input="What is 1+1?")
-    _ = conversation.predict(input="What is my name?")
-    logger.debug(memory.buffer)
+    conversation.predict(input="Hi, my name is Andrew")
+    conversation.predict(input="What is 1+1?")
+    conversation.predict(input="What is my name?")
+    logger.debug(memory.buffer)  # save the conversation until now
     logger.debug(memory.load_memory_variables({}))
+    pass
 
-    ## ConversationBufferWindowMemory
+
+def buffer_win_memory_sample(llm: ChatOpenAI) -> None:
     memory = ConversationBufferWindowMemory(
         k=1
     )  # only memorize the latest conversation
     memory.save_context({"input": "Hi"}, {"output": "What's up"})
     memory.save_context({"input": "Not much, just hanging"}, {"output": "Cool"})
     logger.debug(memory.load_memory_variables({}))
+    pass
 
-    ## ConversationTokenBufferMemory
+
+def buffer_win_memory_sample(llm: ChatOpenAI) -> None:
+    memory = ConversationBufferWindowMemory(
+        k=1
+    )  # only memorize the latest conversation
+    memory.save_context({"input": "Hi"}, {"output": "What's up"})
+    memory.save_context({"input": "Not much, just hanging"}, {"output": "Cool"})
+    logger.debug(memory.load_memory_variables({}))
+    pass
+
+
+def token_buffer_memory_sample(llm: ChatOpenAI) -> None:
     memory = ConversationTokenBufferMemory(
-        llm=llm, max_token_limit=50
+        llm=llm, max_token_limit=20
     )  # the way to count torkens of each model is different, so model param is requested.
     memory.save_context({"input": "AI is what?!"}, {"output": "Amazing!"})
     memory.save_context({"input": "Backpropagation is what?"}, {"output": "Beautiful!"})
     memory.save_context({"input": "Chatbots are what?"}, {"output": "Charming!"})
     logger.debug(memory.load_memory_variables({}))
 
-    ## ConversationSummaryMemory
-    # create a long string
-    schedule = "There is a meeting at 8am with your product team. \
-    You will need your powerpoint presentation prepared. \
-    9am-12pm have time to work on your LangChain \
-    project which will go quickly because Langchain is such a powerful tool. \
-    At Noon, lunch at the italian resturant with a customer who is driving \
-    from over an hour away to meet you to understand the latest in AI. \
-    Be sure to bring your laptop to show the latest LLM demo."
 
+def summary_memory_sample(llm: ChatOpenAI) -> None:
     memory = ConversationSummaryBufferMemory(llm=llm, max_token_limit=100)
     memory.save_context({"input": "Hello"}, {"output": "What's up"})
     memory.save_context({"input": "Not much, just hanging"}, {"output": "Cool"})
@@ -64,6 +67,19 @@ if __name__ == "__main__":
     conversation = ConversationChain(llm=llm, memory=memory, verbose=True)
     conversation.predict(input="What would be a good demo to show?")
     logger.debug(memory.load_memory_variables({}))
+
+
+if __name__ == "__main__":
+    ## initialize
+    _ = load_dotenv(find_dotenv())  # read local .env file
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    llm = ChatOpenAI(temperature=0.0, model="gpt-3.5-turbo", verbose=True)
+
+    ## samples
+    # buffer_memory_sample(llm)
+    # buffer_win_memory_sample(llm)
+    # token_buffer_memory_sample(llm)
+    summary_memory_sample(llm)
 
 
 """

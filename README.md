@@ -5,7 +5,16 @@
 ## History
 - introduction: **Nov 6**
 - Models, Prompts and parsers: **Nov 26**
+    - Direct API calls to OpenAI
+    - API calls through LangChain:
+        - Prompts
+        - Models
+        - Output parsers
 - Memory 
+    - ConversationBufferMemory
+    - ConversationBufferWindowMemory
+    - ConversationTokenBufferMemory
+    - ConversationSummaryMemory
 - Chains
 - Question and Answer
 - Evaluation
