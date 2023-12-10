@@ -10,6 +10,8 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from loguru import logger
 
+from l3_prompt import *
+
 
 def simple_sequential_chain(product: str) -> None:
     llm = ChatOpenAI(temperature=0.9, model="gpt-3.5-turbo")
@@ -27,56 +29,37 @@ def simple_sequential_chain(product: str) -> None:
     overall_simple_chain.run(product)
 
 
+def regular_sequential_chain(review: str) -> None:
+    llm = ChatOpenAI(temperature=0.9, model="gpt-3.5-turbo")
+    first_prompt = ChatPromptTemplate.from_template(
+        "Translate the following review to english:" "\n\n{Review}"
+    )
+    second_prompt = ChatPromptTemplate.from_template(
+        "Can you summarize the following review in 1 sentence: \n\n{English_Review}"
+    )
+    third_prompt = ChatPromptTemplate.from_template(
+        "What language is the following review:\n\n{Review}"
+    )
+    fourth_prompt = ChatPromptTemplate.from_template(
+        "Write a follow up respones to the following "
+        "summary in the specified language: "
+        "\n\nSummary: {summary}\n\nLanguage: {language}"
+    )
+
+    chain_1 = LLMChain(llm=llm, prompt=first_prompt, output_key="English_Review")
+    chain_2 = LLMChain(llm=llm, prompt=second_prompt, output_key="summary")
+    chain_3 = LLMChain(llm=llm, prompt=third_prompt, output_key="language")
+    chain_4 = LLMChain(llm=llm, prompt=fourth_prompt, output_key="followup_message")
+    overall_chain = SequentialChain(
+        chains=[chain_1, chain_2, chain_3, chain_4],
+        input_variables=["Review"],
+        output_variables=["English_Review", "summary", "followup_message"],
+        verbose=True,
+    )
+    logger.debug(overall_chain(review))
+
+
 def router_chain():
-    physics_template = """You are a very smart physics professor. \
-    You are great at answering questions about physics in a concise\
-    and easy to understand manner. \
-    When you don't know the answer to a question you admit\
-    that you don't know.
-
-    Here is a question:
-    {input}"""
-
-    math_template = """You are a very good mathematician. \
-    You are great at answering math questions. \
-    You are so good because you are able to break down \
-    hard problems into their component parts, 
-    answer the component parts, and then put them together\
-    to answer the broader question.
-
-    Here is a question:
-    {input}"""
-
-    history_template = """You are a very good historian. \
-    You have an excellent knowledge of and understanding of people,\
-    events and contexts from a range of historical periods. \
-    You have the ability to think, reflect, debate, discuss and \
-    evaluate the past. You have a respect for historical evidence\
-    and the ability to make use of it to support your explanations \
-    and judgements.
-
-    Here is a question:PromptTemplate
-    that a machine can easily interpret and you know how to \
-    choose a solution that has a good balance between \
-    time complexity and space complexity. 
-
-    Here is a question:
-    {input}"""
-
-    computerscience_template = """ You are a successful computer scientist.\
-    You have a passion for creativity, collaboration,\
-    forward-thinking, confidence, strong problem-solving capabilities,\
-    understanding of theories and algorithms, and excellent communication \
-    skills. You are great at answering coding questions. \
-    You are so good because you know how to solve a problem by \
-    describing the solution in imperative steps \
-    that a machine can easily interpret and you know how to \
-    choose a solution that has a good balance between \
-    time complexity and space complexity. 
-
-    Here is a question:
-    {input}"""
-
     prompt_infos = [
         {
             "name": "physics",
@@ -99,37 +82,6 @@ def router_chain():
             "prompt_template": computerscience_template,
         },
     ]
-
-    MULTI_PROMPT_ROUTER_TEMPLATE = """Given a raw text input to a \
-    language model select the model prompt best suited for the input. \
-    You will be given the names of the available prompts and a \
-    description of what the prompt is best suited for. \
-    You may also revise the original input if you think that revising\
-    it will ultimately lead to a better response from the language model.
-
-    << FORMATTING >>
-    Return a markdown code snippet with a JSON object formatted to look like:
-    ```json
-    {{{{
-        "destination": string \ name of the prompt to use or "DEFAULT"
-        "next_inputs": string \ a potentially modified version of the original input
-    }}}}
-    ```
-
-    REMEMBER: "destination" MUST be one of the candidate prompt \
-    names specified below OR it can be "DEFAULT" if the input is not\
-    well suited for any of the candidate prompts.
-    REMEMBER: "next_inputs" can just be the original input \
-    if you don't think any modifications are needed.
-
-    << CANDIDATE PROMPTS >>
-    {destinations}
-
-    << INPUT >>
-    {{input}}
-
-    << OUTPUT (remember to include the ```json)>>"""
-
     llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
     destination_chains = {}
     for p_info in prompt_infos:
@@ -138,12 +90,14 @@ def router_chain():
         prompt = ChatPromptTemplate.from_template(template=prompt_template)
         chain = LLMChain(llm=llm, prompt=prompt)
         destination_chains[name] = chain
+
     destinations = [f"{p['name']}: {p['description']}" for p in prompt_infos]
     destinations_str = "\n".join(destinations)
+
     default_prompt = ChatPromptTemplate.from_template("{input}")
     default_chain = LLMChain(llm=llm, prompt=default_prompt)
 
-    router_template = MULTI_PROMPT_ROUTER_TEMPLATE.format(destinations=destinations_str)
+    router_template = multi_prompt_router_template.format(destinations=destinations_str)
     router_prompt = PromptTemplate(
         template=router_template,
         input_variables=["input"],
@@ -166,10 +120,12 @@ if __name__ == "__main__":
     df = pd.read_csv("data.csv", sep="\t")
 
     # Run chains
-    # simple_sequential_chain("Queen Size Sheet Set")
-    # logger.debug(sequential_chain(df.Review[5]))
+    ## sequential chains
+    simple_sequential_chain("Queen Size Sheet Set")
+    regular_sequential_chain(review=df.Review[5])
 
+    ## rounter chains
     chain = router_chain()
-    chain.run("what is black body radiation?")
-    chain.run("what is 2 + 2")
-    chain.run("Why does every cell in our body contain DNA?")
+    logger.debug(chain.run("what is black body radiation?"))
+    logger.debug(chain.run("what is 2 + 2"))
+    logger.debug(chain.run("Why does every cell in our body contain DNA?"))

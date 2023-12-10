@@ -10,12 +10,17 @@
         - Prompts
         - Models
         - Output parsers
-- Memory 
+- Memory: **Nov 26**
     - ConversationBufferMemory
     - ConversationBufferWindowMemory
     - ConversationTokenBufferMemory
     - ConversationSummaryMemory
-- Chains
+- Chains: **Dev 11**
+    - LLMChain
+    - Sequential Chains
+        - SimpleSequentialChain
+        - SequentialChain
+    - Router Chain    
 - Question and Answer
 - Evaluation
 - Agents
