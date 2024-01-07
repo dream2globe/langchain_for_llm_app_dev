@@ -4,15 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-openai = "*"
-python-dotenv = "*"
-langchain = "*"
-tiktoken = "*"
-loguru = "*"
 pandas = "*"
+langchain = "*"
+openai = "*"
+loguru = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.11"
-python_full_version = "3.11.6"
+python_version = "3.10"
